@@ -1,7 +1,7 @@
 using MassTransit;
-using NotificationAPI.Consumers;
+using Org.BouncyCastle.Crypto.Agreement.Srp;
 using SHARED;
-using SHARED.Services;
+using StockAPI.Consumers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,21 +11,25 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddSingleton<EmailService>();
-builder.Services.AddMassTransit(config =>
+builder.Services.AddMassTransit(configure =>
 {
-    config.AddConsumer<PaymentCompletedConsumer>();
-    config.UsingRabbitMq((context, cfg) =>
+    configure.AddConsumer<StockCheckConsumer>();
+    configure.AddConsumer<StockRollBackConsumer>();
+    configure.UsingRabbitMq((context, cfg) =>
     {
         cfg.Host("rabbitmq://localhost");
-        cfg.ReceiveEndpoint(RabbitMQConstants.QueueNames.PaymentCompleted, e =>
+        cfg.ReceiveEndpoint(RabbitMQConstants.QueueNames.StockCheck, e =>
         {
-            e.ConfigureConsumer<PaymentCompletedConsumer>(context);
+            e.ConfigureConsumer<StockCheckConsumer>(context);
         });
+        cfg.ReceiveEndpoint(RabbitMQConstants.QueueNames.StockRollback, e =>
+        {
+            e.ConfigureConsumer<StockRollBackConsumer>(context);
+        }
+        );
 
     });
 });
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
